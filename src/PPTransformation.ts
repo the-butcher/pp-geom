@@ -115,4 +115,61 @@ export class PPTransformation {
         return matrixA;
     }
 
+    static matrixDeterminant(matrix: IMatrix2D): number {
+        return matrix.a * matrix.d - matrix.b * matrix.c;
+    }
+
+    static matrixIsInvertible(matrix: IMatrix2D): boolean {
+        return PPTransformation.matrixDeterminant(matrix) !== 0;
+    }
+
+    static matrixInvert(matrix: IMatrix2D): IMatrix2D {
+
+        if (PPTransformation.matrixIsInvertible(matrix)) {
+            const dt = PPTransformation.matrixDeterminant(matrix);
+            return {
+                a: matrix.d / dt,
+                b: -matrix.b / dt,
+                c: -matrix.c / dt,
+                d: matrix.a / dt,
+                e: (matrix.c * matrix.f - matrix.d * matrix.e) / dt,
+                f: -(matrix.a * matrix.f - matrix.b * matrix.e) / dt,
+            }
+        } else {
+            throw "matrix is not invertible";
+        }
+
+        // inverse: function() {
+
+        //     if (this.isIdentity()) {
+        //         return new Matrix();
+        //     }
+        //     else if (!this.isInvertible()) {
+        //         throw "Matrix is not invertible.";
+        //     }
+        //     else {
+        //         var me = this,
+        //             a = me.a,
+        //             b = me.b,
+        //             c = me.c,
+        //             d = me.d,
+        //             e = me.e,
+        //             f = me.f,
+
+        //             m = new Matrix(),
+        //             dt = a * d - b * c;	// determinant(), skip DRY here...
+
+        //         m.a = d / dt;
+        //         m.b = -b / dt;
+        //         m.c = -c / dt;
+        //         m.d = a / dt;
+        //         m.e = (c * f - d * e) / dt;
+        //         m.f = -(a * f - b * e) / dt;
+
+        //         return m;
+        //     }
+        // },
+
+    }
+
 }

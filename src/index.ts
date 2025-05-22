@@ -87,3 +87,19 @@ export interface IRingDeviation {
     }
 }
 
+export type TFillType = 'none' | 'hatch' | 'buff';
+export interface IFillProps {
+    type: TFillType;
+};
+export type TFillProps = IFillPropsNone | IFillPropsBuff | IFillPropsHatch;
+export interface IFillPropsNone extends IFillProps {
+    type: 'none';
+};
+export interface IFillPropsBuff extends IFillProps {
+    type: 'buff';
+};
+export interface IFillPropsHatch extends IFillProps {
+    type: 'hatch';
+    angle: number;
+    space: number;
+};

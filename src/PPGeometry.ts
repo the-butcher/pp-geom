@@ -5,6 +5,8 @@ import { IRingDeviation, TUnionPoint, TUnionPolygon, TUnionPolyline } from ".";
 export class PPGeometry {
 
     static readonly DEFAULT_SIMPLIFY_TOLERANCE = 0.000001;
+    static readonly GRAD_TO_RAD = Math.PI / 180;
+    static readonly RAD_TO_GRAD = 180 / Math.PI;
 
     static bboxAtCenter(center: Position, width: number, height: number): BBox {
         return [
