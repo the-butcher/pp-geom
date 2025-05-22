@@ -1,8 +1,9 @@
 import { Feature, LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon, Position } from "geojson";
 import { Projection } from "./Projection";
+import { PPGeometry } from "./PPGeometry";
 import { Transformation } from "./Transformation";
 
-export { Projection, Transformation };
+export { Projection, PPGeometry, Transformation };
 
 export type TUnionPoint = Point | MultiPoint;
 export type TUnionPolyline = LineString | MultiLineString;
