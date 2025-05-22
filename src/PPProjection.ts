@@ -1,7 +1,7 @@
 import { LineString, MultiLineString, MultiPoint, MultiPolygon, Point, Polygon, Position } from "geojson";
 import { IProjectableProperties, TProjectableFeature, TProjType, TUnionGeometry } from ".";
 
-export class Projection {
+export class PPProjection {
 
     static projectFeature<T extends TUnionGeometry, P extends IProjectableProperties>(projectableFeature: TProjectableFeature<T, P>, projType: TProjType): TProjectableFeature<T, P> {
         if (projectableFeature.properties.projType === projType) {
@@ -37,42 +37,42 @@ export class Projection {
     static projectMultiPolygon(polygons: MultiPolygon, projector: (position: Position) => Position): MultiPolygon {
         return {
             ...polygons,
-            coordinates: Projection.projectPosition3(polygons.coordinates, projector)
+            coordinates: PPProjection.projectPosition3(polygons.coordinates, projector)
         };
     }
 
     static projectPolygon(polygon: Polygon, projector: (position: Position) => Position): Polygon {
         return {
             ...polygon,
-            coordinates: Projection.projectPosition2(polygon.coordinates, projector)
+            coordinates: PPProjection.projectPosition2(polygon.coordinates, projector)
         };
     }
 
     static projectMultiPolylines(polylines: MultiLineString, projector: (position: Position) => Position): MultiLineString {
         return {
             ...polylines,
-            coordinates: Projection.projectPosition2(polylines.coordinates, projector)
+            coordinates: PPProjection.projectPosition2(polylines.coordinates, projector)
         };
     }
 
     static projectPolyline(polyline: LineString, projector: (position: Position) => Position): LineString {
         return {
             ...polyline,
-            coordinates: Projection.projectPosition1(polyline.coordinates, projector)
+            coordinates: PPProjection.projectPosition1(polyline.coordinates, projector)
         };
     }
 
     static projectMultiPoint(points: MultiPoint, projector: (position: Position) => Position): MultiPoint {
         return {
             ...points,
-            coordinates: Projection.projectPosition1(points.coordinates, projector)
+            coordinates: PPProjection.projectPosition1(points.coordinates, projector)
         };
     }
 
     static projectPoint(point: Point, projector: (position: Position) => Position): Point {
         return {
             ...point,
-            coordinates: Projection.projectPosition(point.coordinates, projector)
+            coordinates: PPProjection.projectPosition(point.coordinates, projector)
         };
     }
 
@@ -83,7 +83,7 @@ export class Projection {
      * @returns
      */
     static projectPosition3(positions: Position[][][], projector: (position: Position) => Position): Position[][][] {
-        return positions.map(p => Projection.projectPosition2(p, projector));
+        return positions.map(p => PPProjection.projectPosition2(p, projector));
     }
 
     /**
@@ -93,7 +93,7 @@ export class Projection {
      * @returns
      */
     static projectPosition2(positions: Position[][], projector: (position: Position) => Position): Position[][] {
-        return positions.map(p => Projection.projectPosition1(p, projector));
+        return positions.map(p => PPProjection.projectPosition1(p, projector));
     }
 
     /**
@@ -103,7 +103,7 @@ export class Projection {
      * @returns
      */
     static projectPosition1(positions: Position[], projector: (position: Position) => Position): Position[] {
-        return positions.map(p => Projection.projectPosition(p, projector));
+        return positions.map(p => PPProjection.projectPosition(p, projector));
     }
 
     /**

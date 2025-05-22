@@ -1,7 +1,7 @@
 import { MultiPolygon, Position } from "geojson";
 import { IMatrix2D } from ".";
 
-export class Transformation {
+export class PPTransformation {
 
     /**
      * Get a transformed copy of the given MultiPolygon
@@ -12,7 +12,7 @@ export class Transformation {
     static transformMultiPolygon(polygons: MultiPolygon, matrix: IMatrix2D): MultiPolygon {
         return {
             type: 'MultiPolygon',
-            coordinates: Transformation.transformPosition3(polygons.coordinates, matrix)
+            coordinates: PPTransformation.transformPosition3(polygons.coordinates, matrix)
         }
     }
 
@@ -23,7 +23,7 @@ export class Transformation {
      * @returns
      */
     static transformPosition3(positions: Position[][][], matrix: IMatrix2D): Position[][][] {
-        return positions.map(p => Transformation.transformPosition2(p, matrix));
+        return positions.map(p => PPTransformation.transformPosition2(p, matrix));
     }
 
     /**
@@ -33,7 +33,7 @@ export class Transformation {
      * @returns
      */
     static transformPosition2(positions: Position[][], matrix: IMatrix2D): Position[][] {
-        return positions.map(p => Transformation.transformPosition1(p, matrix));
+        return positions.map(p => PPTransformation.transformPosition1(p, matrix));
     }
 
     /**
@@ -43,7 +43,7 @@ export class Transformation {
      * @returns
      */
     static transformPosition1(positions: Position[], matrix: IMatrix2D): Position[] {
-        return positions.map(p => Transformation.transformPosition(p, matrix));
+        return positions.map(p => PPTransformation.transformPosition(p, matrix));
     }
 
     /**
