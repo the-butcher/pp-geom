@@ -1,6 +1,11 @@
-import { BBox, Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, MultiLineString, MultiPolygon, Point, Polygon, Position } from "geojson";
 import * as turf from '@turf/turf';
-import { IRingDeviation, TUnionPoint, TUnionPolygon, TUnionPolyline } from ".";
+import { BBox, Feature, FeatureCollection, GeoJsonProperties, Geometry, LineString, MultiLineString, MultiPolygon, Point, Polygon, Position } from "geojson";
+import { IRingDeviation, PPProjection, TUnionPoint, TUnionPolygon, TUnionPolyline } from ".";
+
+export interface IPositionWithLength {
+    position: Position;
+    length: number;
+}
 
 export class PPGeometry {
 
@@ -187,7 +192,7 @@ export class PPGeometry {
 
     }
 
-    static cleanAndSimplify(geometry: Geometry) {
+    static cleanAndSimplify(geometry: Geometry, tolerance: number = PPGeometry.DEFAULT_SIMPLIFY_TOLERANCE) {
 
         // there could be a bug in turf when cleaning MultilineStrings where single lines collapse to less than 3 points
         if (geometry.type === 'MultiLineString') {
@@ -206,7 +211,7 @@ export class PPGeometry {
 
         turf.simplify(geometry, {
             mutate: true,
-            tolerance: PPGeometry.DEFAULT_SIMPLIFY_TOLERANCE,
+            tolerance,
             highQuality: true
         });
         if (geometry.type === 'MultiPolygon') {
@@ -217,6 +222,94 @@ export class PPGeometry {
         turf.cleanCoords(geometry, {
             mutate: true
         });
+
+    }
+
+    // static smoothPositions3(positions4326A: Position[][][]): Position[][][] {
+    //     return positions4326A.map(p => PPGeometry.smoothPositions2(p));
+    // }
+
+    // static smoothPositions2(positions4326A: Position[][]): Position[][] {
+    //     return positions4326A.map(p => PPGeometry.smoothPositions1(p));
+    // }
+
+    // static smoothPositions1(positions4326A: Position[]): Position[] {
+
+    //     // const coordinatesProjA = positionsA.map(p => turf.toMercator(p.position4326));
+    //     const positions3857A = positions4326A.map(p => turf.toMercator(p));
+
+    //     const positions3857ALength: IPositionWithLength[] = [];
+
+    //     // build an array of positions at their lengths along the path
+    //     let length = 0;
+    //     positions3857ALength.push({
+    //         length,
+    //         position: positions3857A[0]
+    //     });
+    //     for (let i = 0; i < positions3857A.length - 1; i++) {
+    //         const xDiff = positions3857A[i + 1][0] - positions3857A[i][0];
+    //         const yDiff = positions3857A[i + 1][1] - positions3857A[i][1];
+    //         length += Math.sqrt(xDiff ** 2 + yDiff ** 2);
+    //         positions3857ALength.push({
+    //             length,
+    //             position: positions3857A[i + 1]
+    //         });
+    //     }
+
+    //     const lMax = 30;
+
+    //     const positions3857B: Position[] = [];
+
+    //     positions3857B.push(positions3857ALength[0].position);
+    //     for (let i = 0; i < positions3857ALength.length; i++) {
+
+    //         let xSum = 0;
+    //         let ySum = 0;
+    //         let wSum = 0;
+
+    //         for (let j = 0; j < positions3857ALength.length; j++) {
+
+    //             const lCur = Math.abs(positions3857ALength[i].length - positions3857ALength[j].length);
+    //             if (lCur <= lMax) {
+
+    //                 // const wCur = (lMax - lCur) / lMax;
+    //                 // https://www.desmos.com/calculator/abn1jhhprz
+    //                 const wCur = (Math.cos(lCur * Math.PI / lMax) + 1) / 2;
+
+    //                 xSum += positions3857ALength[j].position[0] * wCur;
+    //                 ySum += positions3857ALength[j].position[1] * wCur;
+    //                 wSum += wCur;
+    //             }
+
+    //         }
+
+    //         positions3857B.push([
+    //             xSum / wSum,
+    //             ySum / wSum
+    //         ]);
+
+    //     }
+    //     positions3857B.push(positions3857ALength[positions3857ALength.length - 1].position);
+
+    //     return positions3857B.map(p => turf.toWgs84(p));
+
+    // }
+
+    static smoothPolygons(polygons4326: TUnionPolygon, iterations: number = 1): MultiPolygon {
+
+        const polygons3857 = PPProjection.projectGeometry(polygons4326, turf.toMercator);
+        // console.log('polygons3857', polygons3857);
+
+        const smoothedGeometries3857 = turf.polygonSmooth(polygons3857, {
+            iterations
+        }).features.map(f => f.geometry);
+        const smoothedPolygons3857: Polygon[] = [];
+        smoothedGeometries3857.forEach(s3857 => smoothedPolygons3857.push(...PPGeometry.destructurePolygons(s3857)));
+        // console.log('smoothedGeometries3857', smoothedGeometries3857);
+
+        const smoothedMultiPolygon3857 = PPGeometry.restructurePolygons(smoothedPolygons3857);
+        const smoothedMultiPolygon4326 = PPProjection.projectGeometry(smoothedMultiPolygon3857, turf.toWgs84);
+        return smoothedMultiPolygon4326;
 
     }
 
@@ -542,35 +635,51 @@ export class PPGeometry {
 
     static dashMultiPolyline(multiPolyline: MultiLineString, dashArray: [number, number]): MultiLineString {
 
-        const dashLengthBase = dashArray[0] / 2 + dashArray[1] + dashArray[0] / 2;
+        const dashLengthSemi = (dashArray[0] + dashArray[1]) / 2;
         const polylinesA = PPGeometry.destructurePolylines(multiPolyline);
         const polylinesB = PPGeometry.connectPolylines(polylinesA, 10);
         const polylinesC: LineString[] = [];
         polylinesB.forEach(polylineB => {
-            const feature04 = turf.feature(polylineB);
-            const length = turf.length(feature04, {
+            const featureB = turf.feature(polylineB);
+            const length = turf.length(featureB, {
                 units: 'meters'
             });
-            let dashCount = Math.round(length / dashLengthBase);
-            if (dashCount % 2 === 0) {
-                dashCount++;
+            let dashCountSemi = Math.round(length / dashLengthSemi);
+            if (dashCountSemi % 2 === 0) {
+                dashCountSemi++;
             };
-            const dashLength = length / dashCount; // full dash length with 2 semi spaces on the front and aback of the dash
-            const dashLength0 = dashLength * dashArray[0] / dashLengthBase;
-            const dashLength1 = dashLength * dashArray[1] / dashLengthBase;
+            const dashLength = length / dashCountSemi; // full dash length with 2 semi spaces on the front and aback of the dash
+            const dashLength0Semi = dashLength * dashArray[0] * 0.5 / dashLengthSemi;
+            const dashLength1Semi = dashLength * dashArray[1] * 0.5 / dashLengthSemi;
             // console.log(dashLength, dashLengthBase, dashLength0, dashArray[0]);
-            // console.log(length, dashCount, dashLength);
-            for (let i = 0; i < dashCount; i++) {
-                const coordinateA = turf.along(feature04, i * dashLength + dashLength0, {
+            // console.log('length', length, 'dashCountSemi', dashCountSemi, 'dashLength', dashLength, 'dashLength0Semi', dashLength0Semi, 'dashLength1Semi', dashLength1Semi);
+
+            for (let i = 0; i < dashCountSemi; i += 2) {
+
+                const srcA = i * dashLength;
+                const dstA = i * dashLength + dashLength1Semi * 2;
+                // console.log('srcA', srcA, 'dstA', dstA);
+                const subPolylineA = turf.lineSliceAlong(featureB, srcA, dstA, {
                     units: 'meters'
-                }).geometry.coordinates;
-                const coordinateB = turf.along(feature04, i * dashLength + dashLength0 + dashLength1, {
-                    units: 'meters'
-                }).geometry.coordinates;
+                }).geometry;
                 polylinesC.push({
                     type: 'LineString',
-                    coordinates: [coordinateA, coordinateB]
+                    coordinates: subPolylineA.coordinates
                 });
+
+                const srcB = i * dashLength + dashLength1Semi * 2 + dashLength0Semi * 2;
+                if (srcB < length) {
+                    const dstB = Math.min(length, (i + 2) * dashLength);
+                    // console.log('srcB', srcB, 'dstB', dstB);
+                    const subPolylineB = turf.lineSliceAlong(featureB, srcB, dstB, {
+                        units: 'meters'
+                    }).geometry;
+                    polylinesC.push({
+                        type: 'LineString',
+                        coordinates: subPolylineB.coordinates
+                    });
+                }
+
             }
         });
         return PPGeometry.restructurePolylines(polylinesC);

@@ -1,4 +1,4 @@
-import { MultiPolygon, Position } from "geojson";
+import { MultiLineString, MultiPolygon, Polygon, Position } from "geojson";
 import { IMatrix2D } from ".";
 
 export class PPTransformation {
@@ -13,7 +13,33 @@ export class PPTransformation {
         return {
             type: 'MultiPolygon',
             coordinates: PPTransformation.transformPosition3(polygons.coordinates, matrix)
-        }
+        };
+    }
+
+    /**
+     * Get a transformed copy of the given Polygon
+     * @param positions
+     * @param matrix
+     * @returns
+     */
+    static transformPolygon(polygon: Polygon, matrix: IMatrix2D): Polygon {
+        return {
+            type: 'Polygon',
+            coordinates: PPTransformation.transformPosition2(polygon.coordinates, matrix)
+        };
+    }
+
+    /**
+     * Get a transformed copy of the given MultiPolygon
+     * @param positions
+     * @param matrix
+     * @returns
+     */
+    static transformMultiPolyline(polylines: MultiLineString, matrix: IMatrix2D): MultiLineString {
+        return {
+            type: 'MultiLineString',
+            coordinates: PPTransformation.transformPosition2(polylines.coordinates, matrix)
+        };
     }
 
     /**
@@ -65,6 +91,23 @@ export class PPTransformation {
      * @param y
      * @returns
      */
+    static matrixScaleInstance(x: number, y: number): IMatrix2D {
+        return {
+            a: x,
+            b: 0,
+            c: 0,
+            d: y,
+            e: 0,
+            f: 0
+        };
+    }
+
+    /**
+     * https://github.com/Fionoble/transformation-matrix-js/blob/master/src/matrix.js
+     * @param x
+     * @param y
+     * @returns
+     */
     static matrixTranslationInstance(x: number, y: number): IMatrix2D {
         return {
             a: 1,
@@ -73,7 +116,7 @@ export class PPTransformation {
             d: 1,
             e: x,
             f: y
-        }
+        };
     }
 
     /**
@@ -90,7 +133,7 @@ export class PPTransformation {
             d: cos,
             e: 0,
             f: 0
-        }
+        };
     }
 
     /**
@@ -110,7 +153,7 @@ export class PPTransformation {
                 d: matrixA.b * matrixB.c + matrixA.d * matrixB.d,
                 e: matrixA.a * matrixB.e + matrixA.c * matrixB.f + matrixA.e,
                 f: matrixA.b * matrixB.e + matrixA.d * matrixB.f + matrixA.f
-            }
+            };
         }
         return matrixA;
     }
@@ -134,7 +177,7 @@ export class PPTransformation {
                 d: matrix.a / dt,
                 e: (matrix.c * matrix.f - matrix.d * matrix.e) / dt,
                 f: -(matrix.a * matrix.f - matrix.b * matrix.e) / dt,
-            }
+            };
         } else {
             throw "matrix is not invertible";
         }
